@@ -151,12 +151,12 @@ module Daedalus
       @blueprint = blueprint
 
       @mod_times = Hash.new do |h,k|
-        h[k] = (File.exists?(k) ? File.mtime(k) : Time.at(0))
+        h[k] = (File.exist?(k) ? File.mtime(k) : Time.at(0))
       end
 
       @sha1_mtimes = {}
       @sha1s = Hash.new do |h,k|
-        if File.exists?(k)
+        if File.exist?(k)
           @log.verbose "computing SHA1: #{k}"
           @sha1_mtimes[k] = File.mtime(k)
           h[k] = Digest::SHA1.file(k).hexdigest
@@ -274,7 +274,7 @@ module Daedalus
     def initialize(path)
       @path = path
 
-      if File.exists?(data_path)
+      if File.exist?(data_path)
         begin
           File.open data_path, "rb" do |f|
             @data = Marshal.load(f.read)
@@ -383,12 +383,12 @@ module Daedalus
     end
 
     def out_of_date?(ctx)
-      unless File.exists?(@path)
+      unless File.exist?(@path)
         return true if @autogen_builder
         raise Errno::ENOENT, "Missing #{@path}"
       end
 
-      return true unless File.exists?(object_path)
+      return true unless File.exist?(object_path)
 
       return true if ctx.mtime_only and ctx.mtime(@path) > ctx.mtime(object_path)
 
@@ -414,14 +414,14 @@ module Daedalus
     end
 
     def clean
-      File.unlink object_path if File.exists?(object_path)
-      File.unlink data_path if File.exists?(data_path)
+      File.unlink object_path if File.exist?(object_path)
+      File.unlink data_path if File.exist?(data_path)
 
       Dir.rmdir artifacts_path if Dir.entries(artifacts_path).empty?
     end
 
     def describe(ctx)
-      if !File.exists?(object_path)
+      if !File.exist?(object_path)
         puts "#{@path}: unbuilt"
       else
         if @data[:sha1] != sha1(ctx)
@@ -472,7 +472,7 @@ module Daedalus
 
       @data_file = "#{@build_dir}.data"
 
-      if File.exists?(@data_file)
+      if File.exist?(@data_file)
         begin
           File.open @data_file, "rb" do |f|
             @data = Marshal.load(f.read)
@@ -508,7 +508,7 @@ module Daedalus
     def have_objects
       return true unless @objects
       @objects.each do |o|
-        return false unless File.exists?(o)
+        return false unless File.exist?(o)
       end
 
       return true
@@ -587,9 +587,9 @@ module Daedalus
 
     def out_of_date?(compiler)
       Dir.chdir @base do
-        return true unless File.exists? name
+        return true unless File.exist? name
         @sources.each do |s|
-          return true unless File.exists? s.object_path
+          return true unless File.exist? s.object_path
           return true if File.mtime(s.object_path) > File.mtime(name)
         end
         @sources.any? { |s| s.out_of_date? compiler }
@@ -603,7 +603,7 @@ module Daedalus
     def clean
       Dir.chdir @base do
         @sources.each { |s| s.clean }
-        File.delete name if File.exists? name
+        File.delete name if File.exist? name
       end
     end
   end
@@ -666,7 +666,7 @@ module Daedalus
 
     def depends_on(file, command)
       # TODO: HACK, the agony, this should be implicit
-      unless File.exists? File.join(@base, file)
+      unless File.exist? File.join(@base, file)
         raise "library group #{@base} depends on #{file}, please run #{command}"
       end
     end
@@ -744,7 +744,7 @@ module Daedalus
 
     def consider(ctx, tasks)
       @files.each { |x| x.consider(ctx, tasks) }
-      tasks.post << self unless tasks.empty? and File.exists?(@path)
+      tasks.post << self unless tasks.empty? and File.exist?(@path)
     end
 
     def build(ctx)
@@ -757,8 +757,8 @@ module Daedalus
         f.clean if f.respond_to? :clean
       end
 
-      File.unlink @path if File.exists?(@path)
-      File.unlink data_path if File.exists?(data_path)
+      File.unlink @path if File.exist?(@path)
+      File.unlink data_path if File.exist?(data_path)
       Dir.rmdir artifacts_path if Dir.entries(artifacts_path).empty?
     end
 
