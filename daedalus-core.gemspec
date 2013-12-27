@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-require 'daedalus/version'
+require './lib/daedalus/version'
 
 Gem::Specification.new do |gem|
   gem.name          = "daedalus-core"
