@@ -147,6 +147,7 @@ module Daedalus
       @cxxflags = []
       @ldflags = []
       @libraries = []
+      @pre_link_cmds = []
       @log = logger
       @blueprint = blueprint
 
@@ -182,7 +183,8 @@ module Daedalus
       dirs
     end
 
-    attr_reader :cc, :cxx, :ldshared, :ldsharedxx, :path, :cflags, :cxxflags, :ldflags, :log
+    attr_reader :cc, :cxx, :ldshared, :ldsharedxx, :path,
+                :cflags, :cxxflags, :ldflags, :log
 
     def add_library(lib)
       if f = lib.cflags
@@ -194,6 +196,10 @@ module Daedalus
         @ldflags = f + @ldflags
         @ldflags.uniq!
       end
+    end
+
+    def add_pre_link(cmd, &b)
+      @pre_link_cmds << [cmd, b]
     end
 
     def mtime(path)
@@ -226,6 +232,21 @@ module Daedalus
     def cxx_compile(source, object)
       @log.show "CXX", source
       @log.command "#{@cxx} #{@cflags.join(' ')} #{@cxxflags.join(' ')} -c -o #{object} #{source}"
+    end
+
+    def pre_link(files)
+      @pre_link_cmds.each do |cmd, blk|
+        file_list = files
+
+        if cmd.index("%objects%")
+          if blk
+            file_list = blk.call file_list
+          end
+          cmd = cmd.gsub(/%objects%/, file_list.join(" "))
+        end
+
+        @log.command cmd
+      end
     end
 
     def link(path, files)
@@ -749,6 +770,7 @@ module Daedalus
 
     def build(ctx)
       ctx.log.inc!
+      ctx.pre_link objects
       ctx.link @path, objects
     end
 
