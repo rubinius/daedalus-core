@@ -499,7 +499,7 @@ module Daedalus
             @data = Marshal.load(f.read)
           end
         rescue
-          STDERR.puts "WARNING: ExternalLibrary#to_build: load '#{data_path}' failed"
+          STDERR.puts "WARNING: ExternalLibrary#to_build: load '#{@data_file}' failed"
           @data = {}
         end
       else
