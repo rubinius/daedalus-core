@@ -25,13 +25,53 @@ class DependencyGrapher
 
   class ExpressionEvaluator
     def initialize(expression)
-      @expression = expression
+      @expression = expression.strip
     end
 
-    # TODO: when melbourne is running in MRI, use it to parse
-    # the expression and then evaluate it.
     def evaluate(defines)
-      @expression == "0" ? false : true
+      # Stage1: find 'defined's and evaluate
+      #         replace defined with boolean evaluation value
+      @expression.gsub!(/(defined\(.+?\))/) { |expr|
+        defkey = expr.match(/\((.+?)\)/)[1]
+        if defines.include?(defkey)
+          'true'
+        else
+          'false'
+        end
+      }
+      # Stage2: scan macro-defined keywords
+      #         replace with actual value (true or false)
+      # this covers patterns like __clang__ and __x86_64__
+      @expression.gsub!(/__[A-Za-z0-9_]+__/) { |expr|
+        if defines.include?(expr)
+          defines[expr].to_s
+        elsif integer?(expr)
+          expr
+        else
+          '0'
+        end
+      }
+
+      # this covers other patters.
+      @expression.gsub!(/[A-Z0-9_]{4,}/) { |expr|
+        if defines.include?(expr)
+          defines[expr].to_s
+        elsif integer?(expr)
+          expr
+        else
+          '0'
+        end
+      }
+      # Stage3: Evaluate with ruby eval()
+      eval(@expression)
+    end
+
+    private
+    def integer?(str)
+      Integer(str)
+      true
+    rescue
+      false
     end
   end
 
@@ -252,7 +292,6 @@ class DependencyGrapher
   class Define < Node
     def initialize(macro, parser)
       super parser
-
       macro.strip!
       if index = macro.index(" ")
         @name = macro[0..index-1]
@@ -389,11 +428,22 @@ class DependencyGrapher
     def parse(lines)
       @line = 0
 
-      lines.each do |line|
-        @line += 1
-        m = line.match(/^\s*#(include|ifdef|ifndef|endif|else|define|undef|if|elif)(.*)$/)
+      inlined_line = ""
+      unless lines.empty?
+        while (line = lines.shift.chomp(''))
+          @line += 1
+          line.rstrip!
+          if line.end_with?('\\')
+            # continue reading if line ends in \
+            inlined_line += line.chop
+          else
+            # stop reading
+            inlined_line += line
+            break
+          end
+        end
 
-        # TODO: continue reading if line ends in \
+        m = inlined_line.match(/^\s*#(include|ifdef|ifndef|endif|else|define|undef|if|elif)(.*)$/)
 
         send :"process_#{m[1]}", m[2] if m
       end
