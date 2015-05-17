@@ -292,6 +292,7 @@ class DependencyGrapher
   class Define < Node
     def initialize(macro, parser)
       super parser
+
       macro.strip!
       if index = macro.index(" ")
         @name = macro[0..index-1]
@@ -428,22 +429,23 @@ class DependencyGrapher
     def parse(lines)
       @line = 0
 
-      inlined_line = ""
-      unless lines.empty?
-        while (line = lines.shift.chomp(''))
-          @line += 1
-          line.rstrip!
-          if line.end_with?('\\')
-            # continue reading if line ends in \
-            inlined_line += line.chop
-          else
-            # stop reading
-            inlined_line += line
-            break
-          end
+      re = /^\s*#(include|ifdef|ifndef|endif|else|define|undef|if|elif)(.*)$/o
+      full_line = ""
+
+      lines.each do |line|
+        @line += 1
+
+        full_line.chomp!
+
+        if line[-2] == ?\\
+          full_line += line.chomp("\\\n") + "\n"
+          next
+        else
+          full_line += line
         end
 
-        m = inlined_line.match(/^\s*#(include|ifdef|ifndef|endif|else|define|undef|if|elif)(.*)$/)
+        m = full_line.match re
+        full_line = ""
 
         send :"process_#{m[1]}", m[2] if m
       end
