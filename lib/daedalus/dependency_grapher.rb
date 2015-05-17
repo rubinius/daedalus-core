@@ -25,24 +25,31 @@ class DependencyGrapher
 
   class ExpressionEvaluator
     def initialize(expression)
-      @expression = expression.strip
+      @expression = expression
     end
 
     def evaluate(defines)
+      # Stage0: eliminate comments
+      @expression.gsub!(/(\/\/.*)$/, "")
+      @expression.gsub!(/(\/\*.*\*\/)/, "")
+
       # Stage1: find 'defined's and evaluate
       #         replace defined with boolean evaluation value
-      @expression.gsub!(/(defined\(.+?\))/) { |expr|
-        defkey = expr.match(/\((.+?)\)/)[1]
-        if defines.include?(defkey)
-          'true'
-        else
-          'false'
-        end
-      }
+      re = /((!|\s*)?defined((\(|\s+)(\s*[^) ]+)(\)|\s|$)))/o
+      @expression.gsub!(re) do |expr|
+        m = expr.match(re)
+        negate = m[2] == "!"
+        key = m[5].strip
+
+        value = defines.include? key
+        value = !value if negate
+        value ? "true" : "false"
+      end
+
       # Stage2: scan macro-defined keywords
       #         replace with actual value (true or false)
       # this covers patterns like __clang__ and __x86_64__
-      @expression.gsub!(/__[A-Za-z0-9_]+__/) { |expr|
+      @expression.gsub!(/__[A-Za-z0-9_]+__/) do |expr|
         if defines.include?(expr)
           defines[expr].to_s
         elsif integer?(expr)
@@ -50,10 +57,10 @@ class DependencyGrapher
         else
           '0'
         end
-      }
+      end
 
       # this covers other patters.
-      @expression.gsub!(/[A-Z0-9_]{4,}/) { |expr|
+      @expression.gsub!(/[A-Z0-9_]{4,}/) do |expr|
         if defines.include?(expr)
           defines[expr].to_s
         elsif integer?(expr)
@@ -61,7 +68,8 @@ class DependencyGrapher
         else
           '0'
         end
-      }
+      end
+
       # Stage3: Evaluate with ruby eval()
       eval(@expression)
     end
