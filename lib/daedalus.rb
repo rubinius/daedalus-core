@@ -473,6 +473,46 @@ module Daedalus
     end
   end
 
+  class InstructionSourceFile < SourceFile
+    def ll_compile(ctx, source, object)
+      ctx.log.show "LL", source
+      ctx.log.command "#{ctx.cxx} -S -emit-llvm #{ctx.cflags.join(" ")} #{ctx.cxxflags.join(" ")} -c -o #{object} #{source}"
+
+      re = %r[tail call i64 %\d+\(%"class.rubinius::State"\*( nonnull)? %state, %"struct.rubinius::CallFrame"*( nonnull)? %call_frame, i64\* %opcodes\)]
+
+      lines = File.readlines object
+      lines.each do |line|
+        if re =~ line
+          line.sub!(/tail call/, "musttail call")
+        end
+      end
+
+      File.open object, "w" do |insn_file|
+        lines.each { |line| insn_file.print line }
+      end
+    end
+
+    def cxx_compile(ctx, source, object)
+      ctx.log.show "CXX", source
+
+      flags = (ctx.cflags + ctx.cxxflags).join(" ").gsub(/-I[^ ]*/, "")
+      ctx.log.command "#{ctx.cxx} #{flags} -c -o #{object} #{source}"
+    end
+
+    def build(ctx)
+      ctx.log.inc!
+
+      @data[:sha1] = sha1(ctx)
+
+      ll_path = path.sub(/cpp$/, "ll")
+
+      ll_compile ctx, path, ll_path
+      cxx_compile ctx, ll_path, object_path
+
+      save!
+    end
+  end
+
   class ExternalLibrary
     def initialize(path)
       @path = path
