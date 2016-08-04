@@ -476,26 +476,45 @@ module Daedalus
   class InstructionSourceFile < SourceFile
     def ll_compile(ctx, source, object)
       ctx.log.show "LL", source
-      ctx.log.command "#{ctx.cxx} -S -emit-llvm #{ctx.cflags.join(" ")} #{ctx.cxxflags.join(" ")} -c -o #{object} #{source}"
 
-      re = %r[tail call i64 %\d+\(%"class.rubinius::State"\*( nonnull)? %state, %"struct.rubinius::CallFrame"*( nonnull)? %call_frame, i64\* %opcodes\)]
+      flags = (ctx.cflags + ctx.cxxflags).join(" ").
+        gsub(/-g[^ ]*/, "").
+        gsub(/-O.?/, "")
+      flags << " -glldb -gline-tables-only -Oz"
+
+      ctx.log.command "#{ctx.cxx} -S -emit-llvm #{flags} -c -o #{object} #{source}"
+
+      re = %r[tail call i64 %\d+\(%"class.rubinius::State"\*( nonnull)? %state, %"struct.rubinius::CallFrame"\*( nonnull)? %call_frame, i64\*( nonnull)? %opcodes\)]
 
       lines = File.readlines object
-      lines.each do |line|
+
+      i = 0
+      t = lines.size
+
+      while i < t
+        line = lines[i]
         if re =~ line
-          line.sub!(/tail call/, "musttail call")
+          if next_line = lines[i+1] and next_line =~ /^\s+ret\s/
+            line.sub!(/tail call/, "musttail call")
+          end
         end
+        i += 1
       end
 
-      File.open object, "w" do |insn_file|
-        lines.each { |line| insn_file.print line }
+      File.open object, "wb" do |insn_file|
+        lines.each { |l| insn_file.print l }
       end
     end
 
     def cxx_compile(ctx, source, object)
       ctx.log.show "CXX", source
 
-      flags = (ctx.cflags + ctx.cxxflags).join(" ").gsub(/-I[^ ]*/, "")
+      flags = (ctx.cflags + ctx.cxxflags).join(" ").
+        gsub(/-I\s?[^ ]*/, "").
+        gsub(/-g[^ ]*/, "").
+        gsub(/-O.?/, "")
+      flags << " -glldb -gline-tables-only -Oz"
+
       ctx.log.command "#{ctx.cxx} #{flags} -c -o #{object} #{source}"
     end
 
