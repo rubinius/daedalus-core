@@ -480,7 +480,7 @@ module Daedalus
       flags = (ctx.cflags + ctx.cxxflags).join(" ").
         gsub(/-g[^ ]*/, "").
         gsub(/-O.?/, "")
-      flags << " -glldb -gline-tables-only -Oz"
+      flags << " -gline-tables-only -Oz"
 
       ctx.log.command "#{ctx.cxx} -S -emit-llvm #{flags} -c -o #{object} #{source}"
 
@@ -513,7 +513,7 @@ module Daedalus
         gsub(/-I\s?[^ ]*/, "").
         gsub(/-g[^ ]*/, "").
         gsub(/-O.?/, "")
-      flags << " -glldb -gline-tables-only -Oz"
+      flags << " -gline-tables-only -Oz"
 
       ctx.log.command "#{ctx.cxx} #{flags} -c -o #{object} #{source}"
     end
@@ -523,7 +523,8 @@ module Daedalus
 
       @data[:sha1] = sha1(ctx)
 
-      ll_path = path.sub(/cpp$/, "ll")
+      fname = File.basename path, "cpp"
+      ll_path = "#{File.dirname(path)}/artifacts/#{fname}ll"
 
       ll_compile ctx, path, ll_path
       cxx_compile ctx, ll_path, object_path
