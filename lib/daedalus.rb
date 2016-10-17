@@ -480,7 +480,7 @@ module Daedalus
       flags = (ctx.cflags + ctx.cxxflags).join(" ").
         gsub(/-g[^ ]*/, "").
         gsub(/-O.?/, "")
-      flags << " -gline-tables-only -Oz"
+      flags << " -Oz"
 
       ctx.log.command "#{ctx.cxx} -S -emit-llvm #{flags} -c -o #{object} #{source}"
 
@@ -513,7 +513,7 @@ module Daedalus
         gsub(/-I\s?[^ ]*/, "").
         gsub(/-g[^ ]*/, "").
         gsub(/-O.?/, "")
-      flags << " -gline-tables-only -Oz"
+      flags << " -Oz"
 
       ctx.log.command "#{ctx.cxx} #{flags} -c -o #{object} #{source}"
     end
