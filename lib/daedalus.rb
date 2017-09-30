@@ -478,7 +478,6 @@ module Daedalus
       ctx.log.show "LL", source
 
       flags = (ctx.cflags + ctx.cxxflags).join(" ").
-        gsub(/-g[^ ]*/, "").
         gsub(/-O.?/, "")
       flags << " -Oz"
 
@@ -511,7 +510,6 @@ module Daedalus
 
       flags = (ctx.cflags + ctx.cxxflags).join(" ").
         gsub(/-I\s?[^ ]*/, "").
-        gsub(/-g[^ ]*/, "").
         gsub(/-O.?/, "")
       flags << " -Oz"
 
