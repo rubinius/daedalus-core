@@ -29,6 +29,6 @@ Rake fails at this task because there is no way to manage multiple, independent 
                     '--main' << 'README' <<
                     '--line-numbers'
 
-  gem.add_development_dependency "rake",   "~> 0.9"
+  gem.add_development_dependency "rake",   ">= 12.3.3"
   gem.add_development_dependency "rspec",  "~> 2.8"
 end
