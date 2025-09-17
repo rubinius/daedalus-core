@@ -1,3 +1,5 @@
+Use [build2](https://www.build2.org), it's amazing!
+
 # Daedalus
 
 Daedalus |ˈdedl-əs| Greek Mythology
